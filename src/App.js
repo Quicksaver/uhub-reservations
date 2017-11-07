@@ -23,8 +23,8 @@ const dates = {
       '4 ey': true,
       '5 ey': true,
       '6 ey': true,
-      '7 ey': false,
-      '8 ey': false
+      '7 ey': true,
+      '8 ey': true
     }
   },
   2: {
@@ -34,8 +34,8 @@ const dates = {
       semester: 2
     },
     availability: {
-      '8 sy': true,
-      '9 sy': true,
+      '8 sy': false,
+      '9 sy': false,
       '10 sy': true,
       '11 sy': true,
       '12 sy': true,
