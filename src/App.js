@@ -34,8 +34,6 @@ const dates = {
       semester: 2
     },
     availability: {
-      '8 sy': false,
-      '9 sy': false,
       '10 sy': true,
       '11 sy': true,
       '12 sy': true,
@@ -47,6 +45,32 @@ const dates = {
       '6 ey': true,
       '7 ey': true,
       '8 ey': true
+    }
+  },
+  3: {
+    period: {
+      startYear: 2018,
+      endYear: 2019,
+      semester: 1
+    },
+    availability: {
+      '10 sy': true,
+      '11 sy': true,
+      '12 sy': true,
+      '1 ey': true
+    }
+  },
+  4: {
+    period: {
+      startYear: 2018,
+      endYear: 2019,
+      semester: 2
+    },
+    availability: {
+      '3 ey': true,
+      '4 ey': true,
+      '5 ey': true,
+      '6 ey': true
     }
   }
 };
@@ -79,6 +103,8 @@ class App extends Component {
         <select onChange={this.changeDate} value={this.state.date}>
           <option value="1">1st Sem 17/18</option>
           <option value="2">2nd Sem 17/18</option>
+          <option value="3">1st Sem 18/19</option>
+          <option value="4">2nd Sem 18/19</option>
         </select>
 
         <DatePicker

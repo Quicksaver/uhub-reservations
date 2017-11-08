@@ -23,6 +23,7 @@
       border-left: 2px solid #ccc;
       border-bottom: 0;
       box-sizing: border-box;
+      cursor: default;
       display: inline-block;
       padding-top: 8px;
       padding-bottom: 8px;
@@ -52,6 +53,7 @@
       border-bottom: 2px solid #ccc;
       border-left: 2px solid #ccc;
       box-sizing: border-box;
+      cursor: pointer;
       display: inline-block;
       padding-top: 8px;
       padding-bottom: 8px;
@@ -66,8 +68,17 @@
         color: rgb(255,255,255);
       }
 
+      &.hover {
+        background-color: rgb(210,216,241);
+      }
+
+      &.not-actionable {
+        cursor: default;
+      }
+
       &.disabled {
         color: #ccc;
+        cursor: default;
         opacity: 0.75;
       }
     }
