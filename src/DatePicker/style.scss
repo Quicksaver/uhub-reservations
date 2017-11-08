@@ -15,12 +15,12 @@
 
     &::after {
       box-sizing: border-box;
-      border-left: 1px solid #ccc;
+      border-left: 2px solid #ccc;
     }
 
     .datepicker-semester {
-      border-top: 1px solid #ccc;
-      border-left: 1px solid #ccc;
+      border-top: 2px solid #ccc;
+      border-left: 2px solid #ccc;
       border-bottom: 0;
       box-sizing: border-box;
       display: inline-block;
@@ -30,6 +30,11 @@
 
       &:last-child {
         width: calc(100% / 13 * 6);
+      }
+
+      &.selected {
+        background-color: rgb(36,61,134);
+        color: rgb(255,255,255);
       }
 
       &.disabled {
@@ -43,9 +48,9 @@
     display: flex;
 
     .datepicker-month {
-      border-top: 1px solid #ccc;
-      border-bottom: 1px solid #ccc;
-      border-left: 1px solid #ccc;
+      border-top: 2px solid #ccc;
+      border-bottom: 2px solid #ccc;
+      border-left: 2px solid #ccc;
       box-sizing: border-box;
       display: inline-block;
       padding-top: 8px;
@@ -53,7 +58,12 @@
       width: calc(100% / 13);
 
       &:last-child {
-        border-right: 1px solid #ccc;
+        border-right: 2px solid #ccc;
+      }
+
+      &.selected {
+        background-color: rgb(36,61,134);
+        color: rgb(255,255,255);
       }
 
       &.disabled {

@@ -24,15 +24,15 @@ class DatePicker extends Component {
       selected: this.getDatesFromSemester(props.period.semester)
     };
 
-    console.log({ when: 'constructor', start: this.state.selected.start, end: this.state.selected.end });
+    console.log({ when: 'constructor', start: this.state.selected.start.date, end: this.state.selected.end.date });
   }
 
   // Update the internal state with the appropriate dates when picking another semester.
   componentDidUpdate() {
     let selected = this.getDatesFromSemester(this.props.period.semester);
-    if(selected.start !== this.state.selected.start || selected.end !== this.state.selected.end) {
+    if(selected.start.month !== this.state.selected.start.month || selected.end.month !== this.state.selected.end.month) {
       this.setState({ selected }, () => {
-        console.log({ when: 'componentDidUpdate', start: selected.start, end: selected.end });
+        console.log({ when: 'componentDidUpdate', start: selected.start.date, end: selected.end.date });
       });
     }
   }
@@ -45,21 +45,30 @@ class DatePicker extends Component {
       availability[this.normalizeMonth(month)] = this.props.availability[month];
     }
 
-    let months = semesters[semester];
+    let period = semesters[semester];
 
     let startI = 0;
-    while(!availability[this.normalizeMonth(months[startI])] && startI < months.length) {
+    while(!availability[this.normalizeMonth(period[startI])] && startI < period.length) {
       startI++;
     }
 
-    let endI = months.length -1;
-    while(!availability[this.normalizeMonth(months[endI])] && endI >= 0) {
+    let endI = period.length -1;
+    while(!availability[this.normalizeMonth(period[endI])] && endI >= 0) {
       endI--;
     }
 
-    let start = this.normalizeMonth(months[startI], 'start');
-    let end = this.normalizeMonth(months[endI], 'end');
-    return { start, end };
+    return {
+      start: {
+        i: months.indexOf(period[startI]),
+        month: period[startI],
+        date: this.normalizeMonth(period[startI], 'start')
+      },
+      end: {
+        i: months.indexOf(period[endI]),
+        month: period[endI],
+        date: this.normalizeMonth(period[endI], 'end')
+      }
+    };
   }
 
   // Turns "8-ey" and "8-2018" to "Aug 18"; can also return the final strings to submit as "1-8-2018" or "31-8-2018".
@@ -122,7 +131,10 @@ class DatePicker extends Component {
   // Render functions, everything related to actually showing the widget on the page.
 
   renderSemester(semester) {
-    let className = "datepicker-semester" + ((this.props.period.semester.toString() !== semester.toString()) ? " disabled" : "");
+    let className = "datepicker-semester";
+    if(this.props.period.semester.toString() === semester.toString()) {
+      className += " selected";
+    }
 
     let startYear = this.props.period.startYear.toString().substr(-2);
     let endYear = this.props.period.endYear.toString().substr(-2);
@@ -132,8 +144,15 @@ class DatePicker extends Component {
     return (<div key={semester} className={className}>{str}</div>);
   }
 
-  renderMonth(month) {
-    let className = "datepicker-month" + ((!this.props.availability[month]) ? " disabled" : "");
+  renderMonth(month, i) {
+    let className = "datepicker-month";
+    if(!this.props.availability[month]) {
+      className += " disabled";
+    }
+    if(i >= this.state.selected.start.i && i <= this.state.selected.end.i) {
+      className += " selected";
+    }
+
     let str = this.normalizeMonth(month);
     return (<div key={month} className={className}>{str}</div>);
   }
@@ -145,7 +164,7 @@ class DatePicker extends Component {
           {[1,2].map((semester) => this.renderSemester(semester))}
         </div>
         <div className="datepicker-months">
-          {months.map((month) => this.renderMonth(month))}
+          {months.map((month, i) => this.renderMonth(month, i))}
         </div>
       </div>
     );
