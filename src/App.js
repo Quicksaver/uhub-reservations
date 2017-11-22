@@ -4,76 +4,52 @@ import './App.css';
 
 import DatePicker from './DatePicker';
 
-const dates = {
+// Periods come from the dropdown selector, which provides
+// an index value to a pre-build collection of periods.
+window._periods = {
+  0: {
+    startMonth: '9-2017',
+    endMonth: '1-2018',
+    before: 0,
+    after: 0,
+    minimum: 3
+  },
   1: {
-    period: {
-      startYear: 2017,
-      endYear: 2018,
-      semester: 1
-    },
-    availability: {
-      '8 sy': true,
-      '9 sy': true,
-      '10 sy': true,
-      '11 sy': true,
-      '12 sy': true,
-      '1 ey': true,
-      '2 ey': true,
-      '3 ey': true,
-      '4 ey': true,
-      '5 ey': true,
-      '6 ey': true,
-      '7 ey': true,
-      '8 ey': true
-    }
+    startMonth: '2-2018',
+    endMonth: '7-2018',
+    minimum: 4
   },
   2: {
-    period: {
-      startYear: 2017,
-      endYear: 2018,
-      semester: 2
-    },
-    availability: {
-      '10 sy': true,
-      '11 sy': true,
-      '12 sy': true,
-      '1 ey': true,
-      '2 ey': true,
-      '3 ey': true,
-      '4 ey': true,
-      '5 ey': true,
-      '6 ey': true,
-      '7 ey': true,
-      '8 ey': true
-    }
+    startMonth: '9-2017',
+    endMonth: '7-2018',
+    minimum: 9
   },
   3: {
-    period: {
-      startYear: 2018,
-      endYear: 2019,
-      semester: 1
-    },
-    availability: {
-      '10 sy': true,
-      '11 sy': true,
-      '12 sy': true,
-      '1 ey': true
-    }
-  },
-  4: {
-    period: {
-      startYear: 2018,
-      endYear: 2019,
-      semester: 2
-    },
-    availability: {
-      '3 ey': true,
-      '4 ey': true,
-      '5 ey': true,
-      '6 ey': true
-    }
+    startMonth: '8-2018',
+    endMonth: '8-2018',
+    minimum: 1
   }
 };
+
+// "before" and "after" are extra months that don't count towards the minimum
+window._typologies = {
+  0: {
+    beforeMonths: 1,
+    afterMonths: 2
+  },
+  1: {
+    beforeMonths: 0,
+    afterMonths: 0
+  },
+  2: {
+    beforeMonths: 0,
+    afterMonths: 1
+  },
+  3: {
+    beforeMonths: 1,
+    afterMonths: 1
+  }
+}
 
 class App extends Component {
   constructor(props) {
@@ -82,17 +58,20 @@ class App extends Component {
     this.state = {
       date: 1
     };
-
-    this.changeDate = this.changeDate.bind(this);
   }
 
-  changeDate(event) {
-    this.setState({ date: event.target.value });
+  changeDates(event) {
+    let newEvent = new CustomEvent('updatedPeriodTypology', {
+      bubbles: true,
+      detail: {
+        periodId: parseInt(document.getElementById('selector_period').value, 0),
+        typologyId: parseInt(document.getElementById('selector_typology').value, 0)
+      }
+    });
+    event.target.dispatchEvent(newEvent);
   }
 
   render() {
-    const { period, availability } = dates[this.state.date];
-
     return (
       <div className="App">
         <header className="App-header">
@@ -100,17 +79,27 @@ class App extends Component {
           <h1 className="App-title">uHub Reservations</h1>
         </header>
 
-        <select onChange={this.changeDate} value={this.state.date}>
-          <option value="1">1st Sem 17/18</option>
-          <option value="2">2nd Sem 17/18</option>
-          <option value="3">1st Sem 18/19</option>
-          <option value="4">2nd Sem 18/19</option>
+        <select id="selector_period"
+          onChange={this.changeDates}
+          defaultValue="0">
+
+          <option value="0">1st Sem 17/18</option>
+          <option value="1">2nd Sem 17/18</option>
+          <option value="2">Year 18/19</option>
+          <option value="3">Summer 18</option>
         </select>
 
-        <DatePicker
-          period={period}
-          availability={availability}
-        />
+        <select id="selector_typology"
+          onChange={this.changeDates}
+          defaultValue="0">
+
+          <option value="0">A room</option>
+          <option value="1">Another room</option>
+          <option value="2">Yet another room</option>
+          <option value="3">Roomy room</option>
+        </select>
+
+        <DatePicker />
       </div>
     );
   }

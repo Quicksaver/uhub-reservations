@@ -3,48 +3,6 @@
   margin: 20px auto;
   max-width: 800px;
 
-  .datepicker-semesters {
-    display: flex;
-
-    &::before,
-    &::after {
-      content: "";
-      display: inline-block;
-      width: calc(100% / 13);
-    }
-
-    &::after {
-      box-sizing: border-box;
-      border-left: 2px solid #ccc;
-    }
-
-    .datepicker-semester {
-      border-top: 2px solid #ccc;
-      border-left: 2px solid #ccc;
-      border-bottom: 0;
-      box-sizing: border-box;
-      cursor: default;
-      display: inline-block;
-      padding-top: 8px;
-      padding-bottom: 8px;
-      width: calc(100% / 13 * 5);
-
-      &:last-child {
-        width: calc(100% / 13 * 6);
-      }
-
-      &.selected {
-        background-color: rgb(36,61,134);
-        color: rgb(255,255,255);
-      }
-
-      &.disabled {
-        color: #ccc;
-        opacity: 0.75;
-      }
-    }
-  }
-
   .datepicker-months {
     display: flex;
 

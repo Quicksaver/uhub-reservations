@@ -1,21 +1,5 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import './style.css';
-
-// The months listed in the DatePicker widget;
-//  sy: start year
-//  ey: end year
-const months = [
-  '8 sy', '9 sy', '10 sy', '11 sy', '12 sy',
-  '1 ey', '2 ey', '3 ey', '4 ey', '5 ey', '6 ey', '7 ey', '8 ey'
-];
-const semesters = {
-  1: [ '9 sy', '10 sy', '11 sy', '12 sy', '1 ey' ],
-  2: [ '2 ey', '3 ey', '4 ey', '5 ey', '6 ey', '7 ey' ]
-};
-
-// The minimum months required in a date selection.
-const minimumMonths = 4;
 
 class DatePicker extends Component {
   // Store an initial state for selected dates when the component is first initialized.
@@ -27,108 +11,129 @@ class DatePicker extends Component {
     this.onClickMonth = this.onClickMonth.bind(this);
 
     // Store an initial state for selected dates when the component is first initialized.
-    this.state = { ...props };
-    this.state.selected = this.getDatesFromSemester();
+    this.state = null;
 
-    console.log({ when: 'constructor', start: this.state.selected.start.date, end: this.state.selected.end.date });
+    // Listen for changes in typology or period selection.
+    window.addEventListener('updatedPeriodTypology', this);
+
+    // Build a default widget, assuming a selection of the first existing period and typology.
+    this.getDates({});
   }
 
-  // Update the internal state with the appropriate dates when picking another semester.
-  componentWillReceiveProps(nextProps) {
-    this.setState(nextProps, () => {
-      let selected = this.getDatesFromSemester();
-      this.setState({ selected }, () => {
-        console.log({ when: 'componentWillReceiveProps', start: selected.start.date, end: selected.end.date });
+  handleEvent(e) {
+    switch (e.type) {
+      // A selection/change was made in either the typology or the period selectors.
+      // We should update our data accordingly.
+      case 'updatedPeriodTypology':
+        this.getDates(e.detail);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  // Get period data based on the selection made; if none is selected assume the first that exists
+  // (one should always be selected though).
+  getPeriod(id) {
+    return new Promise((resolve, reject) => {
+      resolve({
+        periodId: id || 0,
+        period: window._periods[id || 0]
       });
     });
   }
 
-  // Gets the month availabilities in a normalized object, or the availability of the supplied month.
-  getAvailability(month) {
-    let availability = {};
-    for(let m in this.state.availability) {
-      availability[this.normalizeMonth(m)] = this.state.availability[m];
-    }
-    if(month) {
-      return !!availability[this.normalizeMonth(month)];
-    }
-    return availability;
+  // Get typology data based on the selection made; if none is selected assume the first that exists
+  // (one should always be selected though).
+  getTypology(id) {
+    return new Promise((resolve, reject) => {
+      resolve({
+        typologyId: id || 0,
+        extras: window._typologies[id || 0]
+      });
+    });
   }
 
-  // Get the appropriate start and end dates from a picked semester;
-  // it checks for the availability of the semester's months and picks the closest ones possible.
-  getDatesFromSemester() {
-    let availability = this.getAvailability();
-    let period = semesters[this.state.period.semester];
+  // Get the initial selected dates based on the period and typology selection.
+  getDates(detail) {
+    Promise.all([
+      this.getPeriod(detail.periodId),
+      this.getTypology(detail.typologyId)
+    ]).then((res) => {
+      const state = Object.assign({}, res[0], res[1]);
+      if (!this.state || this.state.periodId !== state.periodId || this.state.typologyId !== state.typologyId) {
+        state.selected = {
+          start: state.period.startMonth,
+          end: state.period.endMonth
+        };
+        this.setState(state, () => {
+          const months = this.availableMonths();
+          const nodes = document.querySelectorAll('.datepicker-month');
+          nodes.forEach(function(target) {
+            if (months.indexOf(target.id) > -1) {
+              target.classList.add('selected');
+            } else {
+              target.classList.remove('selected');
+            }
+          });
 
-    let startI = 0;
-    while(!availability[this.normalizeMonth(period[startI])] && startI < period.length) {
-      startI++;
-    }
-
-    let endI = period.length -1;
-    while(!availability[this.normalizeMonth(period[endI])] && endI >= 0) {
-      endI--;
-    }
-
-    return {
-      start: {
-        i: months.indexOf(period[startI]),
-        month: period[startI],
-        date: this.normalizeMonth(period[startI], 'start')
-      },
-      end: {
-        i: months.indexOf(period[endI]),
-        month: period[endI],
-        date: this.normalizeMonth(period[endI], 'end')
+          this.getDatesFromSelection();
+        });
       }
-    };
+    });
   }
 
   // Get the start and end dates from the widget month selection.
   getDatesFromSelection() {
-    let nodes = document.querySelectorAll(".datepicker-month.selected");
-    let start = months.indexOf(nodes[0].id);
-    let end = months.indexOf(nodes[0].id);
-    nodes.forEach((node) => {
-      let i = months.indexOf(node.id);
-      if(i < start) {
-        start = i;
-      } else if(i > end) {
-        end = i;
-      }
-    });
+    const months = this.availableMonths(true);
+    if (!months.length) {
+      return;
+    }
 
-    return {
-      start: {
-        i: start,
-        month: months[start],
-        date: this.normalizeMonth(months[start], 'start')
-      },
-      end: {
-        i: end,
-        month: months[end],
-        date: this.normalizeMonth(months[end], 'end')
-      }
+    const nodes = document.querySelectorAll(".datepicker-month.selected");
+    const start = months.indexOf(nodes[0].id);
+    const end = months.indexOf(nodes[nodes.length -1].id);
+
+    const selected = {
+      start: months[start],
+      end: months[end]
     };
+
+    if(!this.state || !this.state.selected || selected.start !== this.state.selected.start || selected.end !== this.state.selected.end) {
+      this.setState({ selected }, () => {
+        this.publishPickedDates();
+      });
+    }
+    else {
+      this.publishPickedDates();
+    }
   }
 
-  // Turns "8-ey" and "8-2018" to "Aug 18"; can also return the final strings to submit as "1-8-2018" or "31-8-2018".
+  // Save the dates picked, given the typology and period selection, in a property of the window,
+  // so it can be accessed directly when submitting the data.
+  publishPickedDates() {
+    window._datesPicked = {
+      start: this.normalizeMonth(this.state.selected.start, 'start'),
+      end: this.normalizeMonth(this.state.selected.end, 'end'),
+      periodId: this.state.periodId,
+      typologyId: this.state.typologyId
+    };
+    console.log(window._datesPicked);
+  }
+
+  // Turns "8-2018" to "Aug 18"; can also return the final strings to submit as "1-8-2018" or "31-8-2018".
   normalizeMonth(month, fulldate) {
     switch(fulldate) {
       case 'start': {
         return "1-" + month
-          .replace(" ", "-")
-          .replace("sy", this.state.period.startYear)
-          .replace("ey", this.state.period.endYear);
+          .replace(" ", "-");
       }
 
       case 'end': {
         let day;
-        let date = month.split(" ");
-        let year = date[1]
-          .replace("sy", this.state.period.startYear)
-          .replace("ey", this.state.period.endYear);
+        let date = month.split("-");
+        let year = date[1];
 
         switch(date[0]) {
           case "4":
@@ -152,6 +157,7 @@ class DatePicker extends Component {
 
       default:
         return month
+          .replace("-", " ")
           .replace("10 ", "Oct ")
           .replace("11 ", "Nov ")
           .replace("12 ", "Dec ")
@@ -164,9 +170,7 @@ class DatePicker extends Component {
           .replace("7 ", "Jul ")
           .replace("8 ", "Aug ")
           .replace("9 ", "Sep ")
-          .replace(" 20", "")
-          .replace("sy", this.state.period.startYear.toString().substr(-2))
-          .replace("ey", this.state.period.endYear.toString().substr(-2));
+          .replace(" 20", " ");
     }
   }
 
@@ -203,18 +207,15 @@ class DatePicker extends Component {
     });
 
     // Update the internal state with the newly un/selected months, if any.
-    let selected = this.getDatesFromSelection();
-    if(selected.start.month !== this.state.selected.start.month || selected.end.month !== this.state.selected.end.month) {
-      this.setState({ selected }, () => {
-        console.log({ when: 'onClickMonth', start: selected.start.date, end: selected.end.date });
-      });
-    }
+    this.getDatesFromSelection();
   }
 
   // Returns an array of nodes for the actionable months.
   actionableMonths(target) {
+    const months = this.availableMonths(true);
+    const period = this.availableMonths();
+
     let month = target.id;
-    let period = semesters[this.state.period.semester];
     let cutoff = (period.length /2) + months.indexOf(period[0]);
     let i = months.indexOf(month);
 
@@ -225,8 +226,9 @@ class DatePicker extends Component {
       if(i < cutoff) {
 
         // ...needs to leave the minimum amount of months still selected.
-        if(this.state.selected.end.i - i >= minimumMonths) {
-          return months.slice(this.state.selected.start.i, i +1).map((m) => document.getElementById(m));
+        let minEndI = Math.min(months.indexOf(this.state.period.endMonth), months.indexOf(this.state.selected.end));
+        if(period.indexOf(month) === -1 || minEndI - i >= this.state.period.minimum) {
+          return months.slice(months.indexOf(this.state.selected.start), i +1).map((m) => document.getElementById(m));
         }
       }
 
@@ -234,8 +236,9 @@ class DatePicker extends Component {
       else {
 
         // ...needs to leave the minimum amount of months still selected.
-        if(i - this.state.selected.start.i >= minimumMonths) {
-          return months.slice(i, this.state.selected.end.i +1).map((m) => document.getElementById(m));
+        let maxStartI = Math.max(months.indexOf(this.state.period.startMonth), months.indexOf(this.state.selected.start));
+        if(period.indexOf(month) === -1 || i - maxStartI >= this.state.period.minimum) {
+          return months.slice(i, months.indexOf(this.state.selected.end) +1).map((m) => document.getElementById(m));
         }
       }
     }
@@ -243,18 +246,14 @@ class DatePicker extends Component {
     // When trying to select a month...
     else {
 
-      // ..., which needs to be available,...
-      if(this.getAvailability(month)) {
+      // ...within the early period of the chosen semester.
+      if(i < cutoff) {
+        return months.slice(i, months.indexOf(this.state.selected.start)).map((m) => document.getElementById(m));
+      }
 
-        // ...within the early period of the chosen semester.
-        if(i < cutoff) {
-          return months.slice(i, this.state.selected.start.i).map((m) => document.getElementById(m));
-        }
-
-        // ...within the late period of the chosen semester.
-        else {
-          return months.slice(this.state.selected.end.i +1, i +1).map((m) => document.getElementById(m));
-        }
+      // ...within the late period of the chosen semester.
+      else {
+        return months.slice(months.indexOf(this.state.selected.end) +1, i +1).map((m) => document.getElementById(m));
       }
     }
 
@@ -262,28 +261,69 @@ class DatePicker extends Component {
     return [];
   }
 
-  // Render functions, everything related to actually showing the widget on the page.
-
-  renderSemester(semester) {
-    let className = "datepicker-semester";
-    if(this.state.period.semester.toString() === semester.toString()) {
-      className += " selected";
+  // Returns a list of what months are available for booking in the current period.
+  // If extras is true, it will append extra months to that list according to their availability given by the typology selection.
+  availableMonths(extras) {
+    if (!this.state || !this.state.period) {
+      return [];
     }
 
-    let startYear = this.state.period.startYear.toString().substr(-2);
-    let endYear = this.state.period.endYear.toString().substr(-2);
-    let sem = (semester.toString() === "1") ? "1st" : "2nd";
-    let str = sem + " Sem " + startYear + "/" + endYear;
+    let startMonth = this.state.period.startMonth.split("-").map(function(x) { return parseInt(x, 10); });
+    let endMonth = this.state.period.endMonth.split("-").map(function(x) { return parseInt(x, 10); });
 
-    return (<div key={semester} className={className}>{str}</div>);
+    let start = startMonth.slice();
+    let end = endMonth.slice();
+
+    // Add extra months before and after the period.
+    if (extras && this.state.extras) {
+      if (this.state.extras.beforeMonths) {
+        for (let i = 0; i < this.state.extras.beforeMonths; i++) {
+          this.loopMonth(start, true);
+        }
+      }
+      if (this.state.extras.afterMonths) {
+        for (let i = 0; i < this.state.extras.afterMonths; i++) {
+          this.loopMonth(end);
+        }
+      }
+    }
+
+    // Add all the months to be shown.
+    let current = start.slice();
+    const months = [];
+    while (true) {
+      months.push(current.join("-"));
+      if (current[0] === end[0] && current[1] === end[1]) {
+        break;
+      }
+      this.loopMonth(current);
+    }
+    return months;
   }
 
-  renderMonth(month, i) {
-    let className = "datepicker-month";
-    if(!this.state.availability[month]) {
-      className += " disabled";
+  // Goes back or forward a month relative to the given month.
+  loopMonth(month, backward) {
+    if (backward) {
+      month[0]--;
+      if (month[0] < 1) {
+        month[0] = 12;
+        month[1]--;
+      }
     }
-    if(i >= this.state.selected.start.i && i <= this.state.selected.end.i) {
+    else {
+      month[0]++;
+      if (month[0] > 12) {
+        month[0] = 1;
+        month[1]++;
+      }
+    }
+  }
+
+  // Render functions, everything related to actually showing the widget on the page.
+
+  renderMonth(month, period) {
+    let className = "datepicker-month";
+    if(period.indexOf(month) > -1) {
       className += " selected";
     }
 
@@ -302,26 +342,17 @@ class DatePicker extends Component {
   }
 
   render() {
+    const months = this.availableMonths(true);
+    const period = this.availableMonths();
+
     return (
       <div className="datepicker">
-        <div className="datepicker-semesters">
-          {[1,2].map((semester) => this.renderSemester(semester))}
-        </div>
         <div className="datepicker-months">
-          {months.map((month, i) => this.renderMonth(month, i))}
+          {months.map((month) => this.renderMonth(month, period))}
         </div>
       </div>
     );
   }
 }
-
-DatePicker.propTypes = {
-  period: PropTypes.shape({
-    startYear: PropTypes.number.isRequired, // 2017
-    endYear: PropTypes.number.isRequired,   // 2018
-    semester: PropTypes.number.isRequired   // 1
-  }).isRequired,
-  availability: PropTypes.shape(Object.assign(...months.map((m) => ({ [m]: PropTypes.bool })))).isRequired
-};
 
 export default DatePicker;
