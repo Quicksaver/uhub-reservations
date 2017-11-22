@@ -35,53 +35,49 @@ class DatePicker extends Component {
 
   // Get period data based on the selection made; if none is selected assume the first that exists
   // (one should always be selected though).
-  getPeriod(id) {
+  getPeriod(state) {
     return new Promise((resolve, reject) => {
-      resolve({
-        periodId: id || 0,
-        period: window._periods[id || 0]
-      });
+      state.periodId = state.periodId || 0;
+      state.period = window._periods[state.periodId];
+      resolve(state);
     });
   }
 
   // Get typology data based on the selection made; if none is selected assume the first that exists
   // (one should always be selected though).
-  getTypology(id) {
+  getTypology(state) {
     return new Promise((resolve, reject) => {
-      resolve({
-        typologyId: id || 0,
-        extras: window._typologies[id || 0]
-      });
+      state.typologyId = state.typologyId || 0;
+      state.extras = window._typologies[state.typologyId];
+      resolve(state);
     });
   }
 
   // Get the initial selected dates based on the period and typology selection.
-  getDates(detail) {
-    Promise.all([
-      this.getPeriod(detail.periodId),
-      this.getTypology(detail.typologyId)
-    ]).then((res) => {
-      const state = Object.assign({}, res[0], res[1]);
-      if (!this.state || this.state.periodId !== state.periodId || this.state.typologyId !== state.typologyId) {
-        state.selected = {
-          start: state.period.startMonth,
-          end: state.period.endMonth
-        };
-        this.setState(state, () => {
-          const months = this.availableMonths();
-          const nodes = document.querySelectorAll('.datepicker-month');
-          nodes.forEach(function(target) {
-            if (months.indexOf(target.id) > -1) {
-              target.classList.add('selected');
-            } else {
-              target.classList.remove('selected');
-            }
-          });
+  getDates(state) {
+    this.getPeriod(state)
+      .then(this.getTypology)
+      .then((state) => {
+        if (!this.state || this.state.periodId !== state.periodId || this.state.typologyId !== state.typologyId) {
+          state.selected = {
+            start: state.period.startMonth,
+            end: state.period.endMonth
+          };
+          this.setState(state, () => {
+            const months = this.availableMonths();
+            const nodes = document.querySelectorAll('.datepicker-month');
+            nodes.forEach(function(target) {
+              if (months.indexOf(target.id) > -1) {
+                target.classList.add('selected');
+              } else {
+                target.classList.remove('selected');
+              }
+            });
 
-          this.getDatesFromSelection();
-        });
-      }
-    });
+            this.getDatesFromSelection();
+          });
+        }
+      });
   }
 
   // Get the start and end dates from the widget month selection.
