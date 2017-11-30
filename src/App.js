@@ -8,46 +8,54 @@ import DatePicker from './DatePicker';
 // an index value to a pre-build collection of periods.
 window._periods = {
   0: {
-    startMonth: '9-2017',
-    endMonth: '1-2018',
-    before: 0,
-    after: 0,
-    minimum: 3
+    periodId: 0,
+    periodStartMonth: '9-2017',
+    periodEndMonth: '1-2018',
+    periodMonthsBefore: 0,
+    periodMonthsAfter: 0,
+    periodMinimumMonths: 3
   },
   1: {
-    startMonth: '2-2018',
-    endMonth: '7-2018',
-    minimum: 4
+    periodId: 1,
+    periodStartMonth: '2-2018',
+    periodEndMonth: '7-2018',
+    periodMinimumMonths: 4
   },
   2: {
-    startMonth: '9-2017',
-    endMonth: '7-2018',
-    minimum: 9
+    periodId: 2,
+    periodStartMonth: '9-2017',
+    periodEndMonth: '7-2018',
+    periodMinimumMonths: 9
   },
   3: {
-    startMonth: '8-2018',
-    endMonth: '8-2018',
-    minimum: 1
+    periodId: 3,
+    periodStartMonth: '8-2018',
+    periodEndMonth: '8-2018',
+    periodMinimumMonths: 1
   }
 };
 
 // "before" and "after" are extra months that don't count towards the minimum
 window._typologies = {
   0: {
-    beforeMonths: 1,
-    afterMonths: 2
+    typologyPeriodId: 0,
+    monthsBefore: 1,
+    monthsAfter: 2
   },
   1: {
-    beforeMonths: 0,
-    afterMonths: 0
+    typologyPeriodId: 1,
+    monthsBefore: 0,
+    monthsAfter: 0
   },
   2: {
-    beforeMonths: 0,
-    afterMonths: 1
+    typologyPeriodId: 2,
+    monthsBefore: 0,
+    monthsAfter: 1
   },
   3: {
-    beforeMonths: 1,
-    afterMonths: 1
+    typologyPeriodId: 3,
+    monthsBefore: 1,
+    monthsAfter: 1
   }
 }
 
@@ -58,6 +66,13 @@ class App extends Component {
     this.state = {
       date: 1
     };
+
+    window.addEventListener('updatedPeriodTypology', this);
+    window.addEventListener('updatedDatePicked', this);
+  }
+
+  handleEvent(event) {
+    console.log(Object.assign({ type: event.type }, event.detail));
   }
 
   changeDates(event) {
@@ -65,7 +80,13 @@ class App extends Component {
       bubbles: true,
       detail: {
         periodId: parseInt(document.getElementById('selector_period').value, 0),
-        typologyId: parseInt(document.getElementById('selector_typology').value, 0)
+        typologyPeriodId: parseInt(document.getElementById('selector_typology').value, 0),
+        get period() {
+          return window._periods[this.periodId];
+        },
+        get typologyPeriod() {
+          return window._typologies[this.typologyPeriodId];
+        }
       }
     });
     event.target.dispatchEvent(newEvent);
@@ -90,8 +111,7 @@ class App extends Component {
         </select>
 
         <select id="selector_typology"
-          onChange={this.changeDates}
-          defaultValue="0">
+          onChange={this.changeDates}>
 
           <option value="0">A room</option>
           <option value="1">Another room</option>

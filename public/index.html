@@ -20,8 +20,28 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>Reservations | uHub</title>
+    <script type="text/javascript">
+      // This is just to simulate an initial event sent on load.
+      function buildInitialState() {
+        const event = new CustomEvent('updatedPeriodTypology', {
+          bubbles: true,
+          cancelable: false,
+          detail: {
+            period: {
+              periodId: 0,
+              periodStartMonth: '9-2017',
+              periodEndMonth: '1-2018',
+              periodBefore: 0,
+              periodAfter: 0,
+              periodMinimumMonths: 3
+            }
+          }
+        });
+        document.dispatchEvent(event);
+      }
+    </script>
   </head>
-  <body>
+  <body onload="buildInitialState();">
     <noscript>
       You need to enable JavaScript to run this app.
     </noscript>

@@ -15,9 +15,6 @@ class DatePicker extends Component {
 
     // Listen for changes in typology or period selection.
     window.addEventListener('updatedPeriodTypology', this);
-
-    // Build a default widget, assuming a selection of the first existing period and typology.
-    this.getDates({});
   }
 
   handleEvent(e) {
@@ -33,51 +30,32 @@ class DatePicker extends Component {
     }
   }
 
-  // Get period data based on the selection made; if none is selected assume the first that exists
-  // (one should always be selected though).
-  getPeriod(state) {
-    return new Promise((resolve, reject) => {
-      state.periodId = state.periodId || 0;
-      state.period = window._periods[state.periodId];
-      resolve(state);
-    });
-  }
-
-  // Get typology data based on the selection made; if none is selected assume the first that exists
-  // (one should always be selected though).
-  getTypology(state) {
-    return new Promise((resolve, reject) => {
-      state.typologyId = state.typologyId || 0;
-      state.extras = window._typologies[state.typologyId];
-      resolve(state);
-    });
-  }
-
   // Get the initial selected dates based on the period and typology selection.
   getDates(state) {
-    this.getPeriod(state)
-      .then(this.getTypology)
-      .then((state) => {
-        if (!this.state || this.state.periodId !== state.periodId || this.state.typologyId !== state.typologyId) {
-          state.selected = {
-            start: state.period.startMonth,
-            end: state.period.endMonth
-          };
-          this.setState(state, () => {
-            const months = this.availableMonths();
-            const nodes = document.querySelectorAll('.datepicker-month');
-            nodes.forEach(function(target) {
-              if (months.indexOf(target.id) > -1) {
-                target.classList.add('selected');
-              } else {
-                target.classList.remove('selected');
-              }
-            });
+    if (!state) { return; }
 
-            this.getDatesFromSelection();
-          });
-        }
+    if (!this.state ||
+        this.state.period.periodId !== state.period.periodId ||
+        (this.state.typologyPeriod && this.state.typologyPeriod.typologyPeriodId) !== (state.typologyPeriod && state.typologyPeriod.typologyPeriodId)) {
+
+      state.selected = {
+        start: state.period.periodStartMonth,
+        end: state.period.periodEndMonth
+      };
+      this.setState(state, () => {
+        const months = this.availableMonths();
+        const nodes = document.querySelectorAll('.datepicker-month');
+        nodes.forEach(function(target) {
+          if (months.indexOf(target.id) > -1) {
+            target.classList.add('selected');
+          } else {
+            target.classList.remove('selected');
+          }
+        });
+
+        this.getDatesFromSelection();
       });
+    }
   }
 
   // Get the start and end dates from the widget month selection.
@@ -110,12 +88,20 @@ class DatePicker extends Component {
   // so it can be accessed directly when submitting the data.
   publishPickedDates() {
     window._datesPicked = {
-      start: this.normalizeMonth(this.state.selected.start, 'start'),
-      end: this.normalizeMonth(this.state.selected.end, 'end'),
-      periodId: this.state.periodId,
-      typologyId: this.state.typologyId
+      startDate: this.normalizeMonth(this.state.selected.start, 'start'),
+      endDate: this.normalizeMonth(this.state.selected.end, 'end'),
+      period: this.state.period,
+      typologyPeriod: this.state.typologyPeriod,
+      periodId: this.state.period.periodId,
+      typologyPeriodId: this.state.typologyPeriod && this.state.typologyPeriod.typologyPeriodId
     };
-    console.log(window._datesPicked);
+
+    const event = new CustomEvent('updatedDatePicked', {
+      bubbles: true,
+      cancelable: false,
+      detail: window._datesPicked
+    });
+    document.dispatchEvent(event);
   }
 
   // Turns "8-2018" to "Aug 18"; can also return the final strings to submit as "1-8-2018" or "31-8-2018".
@@ -222,8 +208,8 @@ class DatePicker extends Component {
       if(i < cutoff) {
 
         // ...needs to leave the minimum amount of months still selected.
-        let minEndI = Math.min(months.indexOf(this.state.period.endMonth), months.indexOf(this.state.selected.end));
-        if(period.indexOf(month) === -1 || minEndI - i >= this.state.period.minimum) {
+        let minEndI = Math.min(months.indexOf(this.state.period.periodEndMonth), months.indexOf(this.state.selected.end));
+        if(period.indexOf(month) === -1 || minEndI - i >= this.state.period.periodMinimumMonths) {
           return months.slice(months.indexOf(this.state.selected.start), i +1).map((m) => document.getElementById(m));
         }
       }
@@ -232,8 +218,8 @@ class DatePicker extends Component {
       else {
 
         // ...needs to leave the minimum amount of months still selected.
-        let maxStartI = Math.max(months.indexOf(this.state.period.startMonth), months.indexOf(this.state.selected.start));
-        if(period.indexOf(month) === -1 || i - maxStartI >= this.state.period.minimum) {
+        let maxStartI = Math.max(months.indexOf(this.state.period.periodStartMonth), months.indexOf(this.state.selected.start));
+        if(period.indexOf(month) === -1 || i - maxStartI >= this.state.period.periodMinimumMonths) {
           return months.slice(i, months.indexOf(this.state.selected.end) +1).map((m) => document.getElementById(m));
         }
       }
@@ -264,21 +250,25 @@ class DatePicker extends Component {
       return [];
     }
 
-    let startMonth = this.state.period.startMonth.split("-").map(function(x) { return parseInt(x, 10); });
-    let endMonth = this.state.period.endMonth.split("-").map(function(x) { return parseInt(x, 10); });
+    let startMonth = this.state.period.periodStartMonth.split("-").map(function(x) { return parseInt(x, 10); });
+    let endMonth = this.state.period.periodEndMonth.split("-").map(function(x) { return parseInt(x, 10); });
 
     let start = startMonth.slice();
     let end = endMonth.slice();
 
     // Add extra months before and after the period.
-    if (extras && this.state.extras) {
-      if (this.state.extras.beforeMonths) {
-        for (let i = 0; i < this.state.extras.beforeMonths; i++) {
+    if (extras) {
+      const typology = this.state.typologyPeriod || this.state.period;
+      typology.monthsBefore = typology.monthsBefore || 0;
+      typology.monthsAfter = typology.monthsAfter || 0;
+
+      if (typology.monthsBefore) {
+        for (let i = 0; i < typology.monthsBefore; i++) {
           this.loopMonth(start, true);
         }
       }
-      if (this.state.extras.afterMonths) {
-        for (let i = 0; i < this.state.extras.afterMonths; i++) {
+      if (typology.monthsAfter) {
+        for (let i = 0; i < typology.monthsAfter; i++) {
           this.loopMonth(end);
         }
       }
