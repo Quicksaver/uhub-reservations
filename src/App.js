@@ -89,7 +89,7 @@ class App extends Component {
         }
       }
     });
-    event.target.dispatchEvent(newEvent);
+    document.dispatchEvent(newEvent);
   }
 
   render() {
