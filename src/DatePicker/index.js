@@ -122,7 +122,7 @@ class DatePicker extends Component {
           case "6":
           case "9":
           case "11":
-            day = 31;
+            day = 30;
             break;
 
           case "2":
