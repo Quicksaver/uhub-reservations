@@ -57,7 +57,12 @@ window._typologies = {
     monthsBefore: 1,
     monthsAfter: 1
   }
-}
+};
+
+// For testing without Drupal.
+window.Drupal = {
+  t: function(v) { return v; }
+};
 
 class App extends Component {
   constructor(props) {

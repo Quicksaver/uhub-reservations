@@ -313,7 +313,7 @@ class DatePicker extends Component {
       className += " selected";
     }
 
-    let str = this.normalizeMonth(month);
+    let str = this.normalizeMonth(month).split(' ');
     return (
       <div
         key={month}
@@ -322,7 +322,8 @@ class DatePicker extends Component {
         onMouseOver={this.onMouseOverMonth}
         onMouseOut={this.onMouseOutMonth}
         onClick={this.onClickMonth}>
-        {str}
+        <span className="datepicker-month-month">{window.Drupal.t(str[0])}</span>
+        <span className="datepicker-month-year"> {str[1]}</span>
       </div>
     );
   }
