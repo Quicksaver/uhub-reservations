@@ -41,5 +41,10 @@
         opacity: 0.75;
       }
     }
+
+    .datepicker-month-month,
+    .datepicker-month-year {
+      pointer-events: none;
+    }
   }
 }
